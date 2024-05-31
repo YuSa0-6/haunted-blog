@@ -4,6 +4,7 @@ class BlogsController < ApplicationController
   skip_before_action :authenticate_user!, only: %i[index show]
 
   before_action :set_blog, only: %i[show edit update destroy]
+  before_action :assert_current_user, only: %i[edit update destroy]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
@@ -48,6 +49,12 @@ class BlogsController < ApplicationController
   end
 
   def blog_params
-    params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
+    params.require(:blog).permit(:title, :content, :secret, :random_eyecatch, :term)
+  end
+
+  def assert_current_user
+    return unless current_user != @blog.user
+
+    redirect_to blogs_url, alert: 'You are not authorized to access this page.'
   end
 end
