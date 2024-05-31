@@ -5,6 +5,7 @@ class BlogsController < ApplicationController
 
   before_action :set_blog, only: %i[show edit update destroy]
   before_action :assert_current_user, only: %i[edit update destroy]
+  before_action :assert_seacret, only: %i[show]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
@@ -56,5 +57,11 @@ class BlogsController < ApplicationController
     return unless current_user != @blog.user
 
     redirect_to blogs_url, alert: 'You are not authorized to access this page.'
+  end
+
+  def assert_seacret
+    return unless current_user != @blog.user && @blog.secret?
+
+    redirect_to blogs_url, alert: 'this blog is secret.'
   end
 end
