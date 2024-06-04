@@ -4,8 +4,8 @@ class BlogsController < ApplicationController
   skip_before_action :authenticate_user!, only: %i[index show]
 
   before_action :set_blog, only: %i[show edit update destroy]
+  before_action :assert_secret_blog, only: %i[show]
   before_action :assert_current_user, only: %i[edit update destroy]
-  before_action :assert_seacret, only: %i[show]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
@@ -53,15 +53,17 @@ class BlogsController < ApplicationController
     params.require(:blog).permit(:title, :content, :secret, :random_eyecatch, :term)
   end
 
-  def assert_current_user
-    return unless current_user != @blog.user
+  def assert_secret_blog
+    return unless current_user.nil? && @blog.secret? || current_user != @blog.user && @blog.secret?
 
-    redirect_to blogs_url, alert: 'You are not authorized to access this page.'
+    raise ActiveRecord::RecordNotFound
   end
 
-  def assert_seacret
-    return unless current_user != @blog.user && @blog.secret?
+  def assert_current_user
+    raise ActiveRecord::RecordNotFound unless @blog.owned_by?(current_user)
+  end
 
-    redirect_to blogs_url, alert: 'this blog is secret.'
+  def assert_premiun_user
+    current_user.premium?
   end
 end
