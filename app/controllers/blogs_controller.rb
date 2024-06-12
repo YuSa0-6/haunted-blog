@@ -4,6 +4,9 @@ class BlogsController < ApplicationController
   skip_before_action :authenticate_user!, only: %i[index show]
 
   before_action :set_blog, only: %i[show edit update destroy]
+  before_action :assert_secret_blog, only: %i[show]
+  before_action :assert_current_user, only: %i[edit update destroy]
+  before_action :assert_eyecatch, only: [:update]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
@@ -48,6 +51,22 @@ class BlogsController < ApplicationController
   end
 
   def blog_params
-    params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
+    params.require(:blog).permit(:title, :content, :secret, :random_eyecatch, :term)
+  end
+
+  def assert_secret_blog
+    return unless current_user.nil? && @blog.secret? || current_user != @blog.user && @blog.secret?
+
+    raise ActiveRecord::RecordNotFound
+  end
+
+  def assert_current_user
+    raise ActiveRecord::RecordNotFound unless @blog.owned_by?(current_user)
+  end
+
+  def assert_eyecatch
+    return unless !current_user.premium? && blog_params[:random_eyecatch]
+
+    redirect_to root_path, alert: 'You are not allowed to set eyecatch.'
   end
 end
