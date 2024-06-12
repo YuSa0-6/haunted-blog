@@ -6,6 +6,7 @@ class BlogsController < ApplicationController
   before_action :set_blog, only: %i[show edit update destroy]
   before_action :assert_secret_blog, only: %i[show]
   before_action :assert_current_user, only: %i[edit update destroy]
+  before_action :assert_eyecatch, only: [:update]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
@@ -63,7 +64,9 @@ class BlogsController < ApplicationController
     raise ActiveRecord::RecordNotFound unless @blog.owned_by?(current_user)
   end
 
-  def assert_premiun_user
-    current_user.premium?
+  def assert_eyecatch
+    return unless !current_user.premium? && blog_params[:random_eyecatch]
+
+    redirect_to root_path, alert: 'You are not allowed to set eyecatch.'
   end
 end
